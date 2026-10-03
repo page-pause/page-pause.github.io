@@ -48,6 +48,8 @@ const formError = document.getElementById("formError");
 const formOk = document.getElementById("formOk");
 const adminList = document.getElementById("adminList");
 const adminEmpty = document.getElementById("adminEmpty");
+const saveDownloadBtn = document.getElementById("saveDownloadBtn");
+const exportStatus = document.getElementById("exportStatus");
 
 let editingId = null; // id of the book being edited, or null while adding
 
@@ -353,6 +355,39 @@ function renderList() {
     adminList.appendChild(li);
   });
 }
+
+/* ---- Export the current public shelf as books.json ---- */
+function exportBooksJson() {
+  const cleanBooks = shelfBooks()
+    .filter(b => b.state !== "hidden")
+    .map(({ state, addedAt, ...book }) => ({
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      category: book.category || "General",
+      problem: book.problem || "",
+      blurb: book.blurb,
+      cover: book.cover,
+      lockerUrl: book.lockerUrl,
+      badge: book.badge || ""
+    }));
+
+  const json = JSON.stringify(cleanBooks, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "books.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  exportStatus.textContent = `Downloaded books.json with ${cleanBooks.length} book${cleanBooks.length === 1 ? "" : "s"}.`;
+  exportStatus.hidden = false;
+}
+
+saveDownloadBtn.addEventListener("click", exportBooksJson);
 
 /* ---- Session restore ---- */
 if (sessionStorage.getItem(SESSION_KEY) === "1") showAdmin();
