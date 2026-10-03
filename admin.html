@@ -107,11 +107,14 @@
         <div class="admin-card">
           <h2>All books on the shelf</h2>
           <p class="admin-sub">
-            Edits and hides live in <strong>this browser only</strong>. To change what
-            everyone sees, click “Copy book code” and paste the block into the
-            <code>BOOKS</code> list in <code>script.js</code> — for a built-in book,
-            replace its old block with the new one.
+            Add, edit, hide, or delete books here. Changes are stored in this browser.
+            Click <strong>Save &amp; Download</strong> to export the current public shelf
+            as <code>books.json</code>, then replace the project file with that download.
           </p>
+          <div class="admin-export">
+            <button class="btn btn-primary" id="saveDownloadBtn" type="button">Save &amp; Download</button>
+            <p class="form-ok" id="exportStatus" role="status" hidden></p>
+          </div>
           <ul class="admin-list" id="adminList"></ul>
           <p class="admin-empty" id="adminEmpty" hidden>No books on the shelf.</p>
         </div>
