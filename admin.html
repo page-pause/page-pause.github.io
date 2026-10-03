@@ -52,7 +52,7 @@
       <!-- ===== Login (shown until you sign in) ===== -->
       <section id="loginView" class="admin-card">
         <h1>Shelf manager</h1>
-        <p class="admin-sub">Sign in to add books.</p>
+        <p class="admin-sub">Sign in to manage the shelf.</p>
         <form id="loginForm" novalidate>
           <label for="username">Username</label>
           <input id="username" name="username" type="text" autocomplete="username" required>
@@ -70,7 +70,7 @@
       <section id="adminView" hidden>
         <div class="admin-card">
           <div class="admin-head">
-            <h1>Add a book</h1>
+            <h1 id="formTitle">Add a book</h1>
             <button class="btn btn-soft btn-small" id="logoutBtn" type="button">Sign out</button>
           </div>
 
@@ -99,19 +99,21 @@
             <p class="form-error" id="formError" role="alert" hidden></p>
             <p class="form-ok" id="formOk" role="status" hidden>Saved — it's on the shelf below.</p>
 
-            <button class="btn btn-primary" type="submit">Add book</button>
+            <button class="btn btn-primary" id="formSubmit" type="submit">Add book</button>
+            <button class="btn btn-soft" id="cancelEdit" type="button" hidden>Cancel — back to adding</button>
           </form>
         </div>
 
         <div class="admin-card">
-          <h2>Your added books</h2>
+          <h2>All books on the shelf</h2>
           <p class="admin-sub">
-            Saved in <strong>this browser only</strong>. Visitors won't see them until you
-            click “Copy book code” and paste the block into the <code>BOOKS</code> list in
-            <code>script.js</code>.
+            Edits and hides live in <strong>this browser only</strong>. To change what
+            everyone sees, click “Copy book code” and paste the block into the
+            <code>BOOKS</code> list in <code>script.js</code> — for a built-in book,
+            replace its old block with the new one.
           </p>
           <ul class="admin-list" id="adminList"></ul>
-          <p class="admin-empty" id="adminEmpty" hidden>No books added yet.</p>
+          <p class="admin-empty" id="adminEmpty" hidden>No books on the shelf.</p>
         </div>
       </section>
 

@@ -12,7 +12,8 @@
    (You can also add books from the private shelf manager;
    those are stored in YOUR browser only — use "Copy book code"
    there to publish them for everyone by pasting into this BOOKS
-   list.)
+   list. Books you edit or hide in the manager are also local to
+   your browser, and an edited copy overrides the block here.)
    ============================================================ */
 
 const BOOKS = [
@@ -89,14 +90,27 @@ const BOOKS = [
    Below here is the engine — you normally never need to edit it.
    ============================================================ */
 
-const ADMIN_KEY = "pp-admin-books"; // localStorage key for shelf-manager books
+const ADMIN_KEY = "pp-admin-books";   // shelf-manager books (added + edits)
+const HIDDEN_KEY = "pp-hidden-books"; // built-in books hidden from the shelf manager
 
-/* Books added via the shelf manager (this browser only) + the list above */
+/* How the shelf manager merges with the list above (all local to this browser):
+   - a stored entry whose id matches a built-in book OVERRIDES it (an edit)
+   - ids in the hidden list are taken off the shelf (a hide)
+   - everything else is an extra added book */
 function allBooks() {
-  let extra = [];
+  let extra = [], hidden = [];
   try { extra = JSON.parse(localStorage.getItem(ADMIN_KEY)) || []; }
   catch (e) { extra = []; }
-  return [...BOOKS, ...extra];
+  try { hidden = JSON.parse(localStorage.getItem(HIDDEN_KEY)) || []; }
+  catch (e) { hidden = []; }
+
+  const builtinIds = new Set(BOOKS.map(b => b.id));
+  const overrides = new Map(extra.filter(b => builtinIds.has(b.id)).map(b => [b.id, b]));
+  const shelf = BOOKS
+    .filter(b => !hidden.includes(b.id))
+    .map(b => overrides.get(b.id) || b);
+
+  return [...shelf, ...extra.filter(b => !builtinIds.has(b.id))];
 }
 
 /* Escape user text before inserting into HTML */

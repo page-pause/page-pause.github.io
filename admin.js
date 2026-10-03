@@ -1,6 +1,8 @@
 /* ============================================================
    Page & Pause — admin.js
-   Shelf manager: login + add books to this browser's shelf.
+   Shelf manager: login + add, edit, hide and delete books.
+   Edits to built-in books are stored as overrides in this
+   browser — use "Copy book code" to publish them.
 
    ⚠ HONEST WARNING: this is a static site, so this login is
    *obfuscation, not real security*. The password is stored as
@@ -39,10 +41,15 @@ const adminView = document.getElementById("adminView");
 const loginForm = document.getElementById("loginForm");
 const loginError = document.getElementById("loginError");
 const bookForm = document.getElementById("bookForm");
+const formTitle = document.getElementById("formTitle");
+const formSubmit = document.getElementById("formSubmit");
+const cancelEdit = document.getElementById("cancelEdit");
 const formError = document.getElementById("formError");
 const formOk = document.getElementById("formOk");
 const adminList = document.getElementById("adminList");
 const adminEmpty = document.getElementById("adminEmpty");
+
+let editingId = null; // id of the book being edited, or null while adding
 
 function showAdmin() {
   loginView.hidden = true;
@@ -93,41 +100,130 @@ function saveStored(list) {
   localStorage.setItem(ADMIN_STORE_KEY, JSON.stringify(list));
 }
 
-/* ---- Add a book ---- */
+/* Built-in books hidden from the shelf in this browser (ids only).
+   Key name differs from script.js's HIDDEN_KEY on purpose. */
+const HIDDEN_STORE_KEY = "pp-hidden-books";
+
+function getHidden() {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_STORE_KEY)) || []; }
+  catch (e) { return []; }
+}
+
+function saveHidden(list) {
+  localStorage.setItem(HIDDEN_STORE_KEY, JSON.stringify(list));
+}
+
+/* Does this id ship in script.js? */
+function isBuiltin(id) {
+  return BOOKS.some(b => b.id === id);
+}
+
+/* Built-ins first (edits and hides applied), then books added here.
+   Each row carries a state: "builtin" | "edited" | "hidden" | "added". */
+function shelfBooks() {
+  const stored = getStored();
+  const hidden = getHidden();
+  const storedById = new Map(stored.map(b => [b.id, b]));
+
+  const rows = BOOKS.map(b => {
+    const edited = storedById.get(b.id);
+    return {
+      ...(edited || b),
+      state: hidden.includes(b.id) ? "hidden" : edited ? "edited" : "builtin"
+    };
+  });
+  stored.filter(b => !isBuiltin(b.id))
+       .forEach(b => rows.push({ ...b, state: "added" }));
+  return rows;
+}
+
+/* Form input id per book field — used to read and fill the form */
+const FIELDS = {
+  title: "fTitle", blurb: "fBlurb", author: "fAuthor", cover: "fCover",
+  lockerUrl: "fLocker", category: "fCategory", problem: "fProblem"
+};
+
+/* Read the form (null if a required field is empty) */
+function readForm() {
+  const data = {};
+  for (const key in FIELDS) data[key] = document.getElementById(FIELDS[key]).value.trim();
+  data.category = data.category || "General";
+  if (!data.title || !data.blurb || !data.author || !data.cover || !data.lockerUrl) return null;
+  return data;
+}
+
+/* ---- Add mode vs edit mode ---- */
+function setFormMode(editId) {
+  editingId = editId || null;
+  const editing = !!editingId;
+  formTitle.textContent = editing ? "Edit book" : "Add a book";
+  formSubmit.textContent = editing ? "Save changes" : "Add book";
+  cancelEdit.hidden = !editing;
+}
+
+function startEdit(id) {
+  const book = shelfBooks().find(b => b.id === id);
+  if (!book) return;
+  for (const key in FIELDS) {
+    const v = key === "category" && book.category === "General" ? "" : book[key];
+    document.getElementById(FIELDS[key]).value = v || "";
+  }
+  formOk.hidden = true;
+  formError.hidden = true;
+  setFormMode(id);
+  bookForm.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  document.getElementById("fTitle").focus({ preventScroll: true });
+}
+
+cancelEdit.addEventListener("click", () => {
+  bookForm.reset();
+  setFormMode(null);
+  formOk.hidden = true;
+  formError.hidden = true;
+});
+
+/* ---- Add a book / save edits ---- */
 bookForm.addEventListener("submit", e => {
   e.preventDefault();
   formOk.hidden = true;
   formError.hidden = true;
 
-  const title = document.getElementById("fTitle").value.trim();
-  const blurb = document.getElementById("fBlurb").value.trim();
-  const author = document.getElementById("fAuthor").value.trim();
-  const cover = document.getElementById("fCover").value.trim();
-  const lockerUrl = document.getElementById("fLocker").value.trim();
-  const category = document.getElementById("fCategory").value.trim() || "General";
-  const problem = document.getElementById("fProblem").value.trim();
-
-  if (!title || !blurb || !author || !cover || !lockerUrl) {
+  const data = readForm();
+  if (!data) {
     formError.textContent = "Please fill in all required fields.";
     formError.hidden = false;
     return;
   }
 
   const list = getStored();
-  const id = (title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "book")
-    + "-" + Date.now().toString(36);
 
-  list.push({
-    id, title, author, category, problem,
-    blurb,
-    cover,
-    lockerUrl,
-    badge: "",
-    addedAt: new Date().toISOString()
-  });
-  saveStored(list);
+  if (editingId) {
+    const i = list.findIndex(b => b.id === editingId);
+    if (i >= 0) {
+      // Added in this browser — update in place, same id so links keep working
+      list[i] = { ...list[i], ...data };
+    } else {
+      // Built-in book — save an override with the same id
+      const original = BOOKS.find(b => b.id === editingId);
+      list.push({
+        ...data,
+        id: editingId,
+        badge: original ? original.badge : "",
+        addedAt: new Date().toISOString()
+      });
+    }
+    saveStored(list);
+    formOk.textContent = "Changes saved — it's on the shelf below.";
+  } else {
+    const id = (data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "book")
+      + "-" + Date.now().toString(36);
+    list.push({ ...data, id, badge: "", addedAt: new Date().toISOString() });
+    saveStored(list);
+    formOk.textContent = "Saved — it's on the shelf below.";
+  }
 
   bookForm.reset();
+  setFormMode(null);
   formOk.hidden = false;
   renderList();
 });
@@ -143,53 +239,116 @@ function snippetFor(b) {
     blurb: ${JSON.stringify(b.blurb)},
     cover: ${JSON.stringify(b.cover)},
     lockerUrl: ${JSON.stringify(b.lockerUrl)},
-    badge: ""
+    badge: ${JSON.stringify(b.badge || "")}
   }`;
 }
 
+/* Delete needs two clicks — a stray click shouldn't lose a book */
+let pendingDelete = null;
+
+function armDelete(btn) {
+  disarmDelete();
+  btn.classList.add("btn-danger");
+  btn.textContent = "Sure? Delete";
+  pendingDelete = { btn, timer: setTimeout(disarmDelete, 3000) };
+}
+
+function disarmDelete() {
+  if (!pendingDelete) return;
+  clearTimeout(pendingDelete.timer);
+  pendingDelete.btn.classList.remove("btn-danger");
+  pendingDelete.btn.textContent = "Delete";
+  pendingDelete = null;
+}
+
 function renderList() {
-  const list = getStored();
-  adminEmpty.hidden = list.length > 0;
+  disarmDelete();
+  const rows = shelfBooks();
+  adminEmpty.hidden = rows.length > 0;
   adminList.innerHTML = "";
 
-  list.forEach((b, i) => {
+  const TAGS = {
+    builtin: "Built-in",
+    edited: "Built-in · Edited",
+    hidden: "Hidden",
+    added: "This browser"
+  };
+
+  rows.forEach(b => {
     const li = document.createElement("li");
     li.className = "admin-item";
+    li.dataset.state = b.state;
     li.innerHTML = `
       <div class="admin-item-info">
-        <strong>${esc(b.title)}</strong>
-        <span>${esc(b.author)} · ${esc(b.category)}</span>
+        <strong>${esc(b.title)}<span class="admin-tag">${TAGS[b.state]}</span></strong>
+        <span>${esc(b.author)} · ${esc(b.category || "General")}</span>
       </div>
-      <div class="admin-item-actions">
-        <button class="btn btn-soft btn-small" data-act="copy">Copy book code</button>
-        <button class="btn btn-soft btn-small" data-act="delete">Delete</button>
-      </div>`;
+      <div class="admin-item-actions"></div>`;
 
-    li.querySelector('[data-act="copy"]').addEventListener("click", async () => {
-      const text = snippetFor(b);
-      const btn = li.querySelector('[data-act="copy"]');
-      try {
-        await navigator.clipboard.writeText(text);
-        btn.textContent = "Copied!";
-      } catch (e) {
-        // Fallback for browsers without clipboard permission
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-        btn.textContent = "Copied!";
+    const actions = li.querySelector(".admin-item-actions");
+    const addBtn = (label, cls, fn) => {
+      const btn = document.createElement("button");
+      btn.className = "btn " + cls;
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", fn);
+      actions.appendChild(btn);
+      return btn;
+    };
+
+    if (b.state === "hidden") {
+      // Hidden built-in — only offer bringing it back
+      addBtn("Restore", "btn-soft btn-small", () => {
+        saveHidden(getHidden().filter(id => id !== b.id));
+        renderList();
+      });
+    } else {
+      addBtn("Edit", "btn-soft btn-small", () => startEdit(b.id));
+
+      const copyBtn = addBtn("Copy book code", "btn-soft btn-small", async () => {
+        const text = snippetFor(b);
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = "Copied!";
+        } catch (e) {
+          // Fallback for browsers without clipboard permission
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          copyBtn.textContent = "Copied!";
+        }
+        setTimeout(() => { copyBtn.textContent = "Copy book code"; }, 1800);
+      });
+
+      if (b.state === "added") {
+        addBtn("Delete", "btn-soft btn-small", function () {
+          if (pendingDelete && pendingDelete.btn === this) {
+            disarmDelete();
+            saveStored(getStored().filter(x => x.id !== b.id));
+            renderList();
+          } else {
+            armDelete(this);
+          }
+        });
+      } else {
+        if (b.state === "edited") {
+          addBtn("Revert", "btn-soft btn-small", () => {
+            saveStored(getStored().filter(x => x.id !== b.id));
+            renderList();
+          });
+        }
+        // Built-ins can't be removed from script.js here — hide them instead
+        addBtn("Hide", "btn-soft btn-small", () => {
+          const hidden = getHidden();
+          if (!hidden.includes(b.id)) hidden.push(b.id);
+          saveHidden(hidden);
+          renderList();
+        });
       }
-      setTimeout(() => { btn.textContent = "Copy book code"; }, 1800);
-    });
-
-    li.querySelector('[data-act="delete"]').addEventListener("click", () => {
-      const next = getStored();
-      next.splice(i, 1);
-      saveStored(next);
-      renderList();
-    });
+    }
 
     adminList.appendChild(li);
   });

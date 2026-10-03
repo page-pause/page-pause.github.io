@@ -65,6 +65,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Keep the hidden attribute hidden even on display:flex/inline-flex elements */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -754,7 +757,38 @@ a { color: var(--accent-text); }
 }
 .admin-item-info { display: flex; flex-direction: column; }
 .admin-item-info span { font-size: 0.88rem; color: var(--text-soft); }
-.admin-item-actions { display: flex; gap: 8px; }
+.admin-item-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Where a book lives: Built-in (script.js) vs This browser (added/edited) */
+.admin-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.admin-item[data-state="edited"] .admin-tag {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.admin-item[data-state="hidden"] .admin-item-info { opacity: 0.55; }
+.admin-item[data-state="hidden"] .admin-item-info strong { text-decoration: line-through; }
+
+/* Destructive action (second-click confirmation) */
+.btn-danger {
+  background: var(--accent-text);
+  color: var(--btn-fg);
+  border-color: transparent;
+}
+[data-theme="dark"] .btn-danger { background: var(--accent); }
+
+#cancelEdit { margin-top: 10px; }
 .admin-empty { color: var(--text-soft); font-size: 0.95rem; }
 
 /* ============================================================
