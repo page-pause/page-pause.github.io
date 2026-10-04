@@ -1,24 +1,15 @@
 /* ============================================================
    Page & Pause — script.js
    ------------------------------------------------------------
-   ✦ HOW TO ADD A BOOK BY HAND (takes about a minute):
-     1. Scroll down to the BOOKS list below.
-     2. Copy any whole { ... } block.
-     3. Paste it after the last one and make sure there is a
-        comma at the end of the block BEFORE your new one.
-     4. Change the words inside. That's it — the card, the
-        category chips, and the filters all update by themselves.
+   ✦ PUBLIC BOOK SOURCE:
+     The public website loads its entire catalog from books.json.
+     Add, edit, or remove books there to change what everyone sees.
 
-   (You can also add books from the private shelf manager;
-   those are stored in YOUR browser only — use "Copy book code"
-   there to publish them for everyone by pasting into this BOOKS
-   list. Books you edit or hide in the manager are also local to
-   your browser, and an edited copy overrides the block here.)
+   The private admin shelf is separate and does not modify the
+   public catalog until you export and replace books.json.
    ============================================================ */
 
 const BOOKS = [];
-let booksLoaded = false;
-
 const booksReady = fetch("books.json", { cache: "no-store" })
   .then(response => {
     if (!response.ok) throw new Error(`Could not load books.json (HTTP ${response.status})`);
@@ -27,7 +18,6 @@ const booksReady = fetch("books.json", { cache: "no-store" })
   .then(books => {
     if (!Array.isArray(books)) throw new Error("books.json must contain an array");
     BOOKS.splice(0, BOOKS.length, ...books);
-    booksLoaded = true;
     return BOOKS;
   });
 
