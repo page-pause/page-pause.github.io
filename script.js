@@ -181,7 +181,7 @@ if (grid) {
           <p class="card-author">${esc(book.author)}</p>
           ${solvesHTML(book)}
           <p class="blurb">${esc(book.blurb)}</p>
-          <a class="btn btn-primary" href="book.html?id=${encodeURIComponent(book.id)}">See the summary</a>
+          <a class="btn btn-primary" href="book.html?id=${encodeURIComponent(book.id)}">See the book</a>
         </div>
       </article>`;
   }
@@ -277,7 +277,7 @@ if (detail) {
           ${solvesHTML(book)}
           <p class="blurb detail-blurb">${esc(book.blurb)}</p>
           <a class="btn btn-primary" href="${esc(book.lockerUrl)}"
-             target="_blank" rel="noopener noreferrer">Get the free summary</a>
+             target="_blank" rel="noopener noreferrer">Get the free book</a>
           <p class="detail-note">Opens in a new tab. Some links lead to sponsored offers.</p>
         </div>
       </article>`;
