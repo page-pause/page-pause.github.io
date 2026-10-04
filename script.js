@@ -16,101 +16,25 @@
    your browser, and an edited copy overrides the block here.)
    ============================================================ */
 
-const BOOKS = [
-  {
-    id: "atomic-habits",
-    title: "Atomic Habits",
-    author: "James Clear",
-    category: "Habits",
-    problem: "I can't stop procrastinating",
-    blurb: "Tiny changes compound into remarkable results. This one shows you how to build good habits and break bad ones without needing willpower.",
-    cover: "covers/atomic-habits.jpg",
-    lockerUrl: "#", // ← replace with your content-locker URL
-    badge: "Most popular"
-  },
-  {
-    id: "deep-work",
-    title: "Deep Work",
-    author: "Cal Newport",
-    category: "Focus",
-    problem: "I get distracted every three minutes",
-    blurb: "Focused, uninterrupted work is becoming rare and therefore valuable. Learn rules for training your attention like a muscle.",
-    cover: "covers/deep-work.jpg",
-    lockerUrl: "#",
-    badge: ""
-  },
-  {
-    id: "psychology-of-money",
-    title: "The Psychology of Money",
-    author: "Morgan Housel",
-    category: "Money",
-    problem: "I never feel like I'm good with money",
-    blurb: "Doing well with money has little to do with IQ and a lot to do with behaviour. Fourteen short stories about the habits that build wealth.",
-    cover: "covers/psychology-of-money.jpg",
-    lockerUrl: "#",
-    badge: ""
-  },
-  {
-    id: "why-we-sleep",
-    title: "Why We Sleep",
-    author: "Matthew Walker",
-    category: "Rest",
-    problem: "I'm exhausted but can't switch off at night",
-    blurb: "Sleep is the single most effective thing you can do for your brain and body. A science-backed case for protecting your nights.",
-    cover: "covers/why-we-sleep.jpg",
-    lockerUrl: "#",
-    badge: "New"
-  },
-  {
-    id: "essentialism",
-    title: "Essentialism",
-    author: "Greg McKeown",
-    category: "Focus",
-    problem: "My to-do list never, ever ends",
-    blurb: "Less, but better. This is about doing fewer things but doing them far better, instead of wandering through busywork.",
-    cover: "covers/essentialism.jpg",
-    lockerUrl: "#",
-    badge: ""
-  },
-  {
-    id: "how-to-fail",
-    title: "How to Fail at Everything and Still Win Big",
-    author: "Scott Adams",
-    category: "Mindset",
-    problem: "I'm scared of failing again",
-    blurb: "Forget goals; build systems. A slightly contrarian toolkit for stacking skills and forgiving your own stumbles.",
-    cover: "covers/how-to-fail.jpg",
-    lockerUrl: "#",
-    badge: ""
-  }
-  /* → Paste your next { ... } book block right here */
-];
+const BOOKS = [];
+let booksLoaded = false;
 
-/* ============================================================
-   Below here is the engine — you normally never need to edit it.
-   ============================================================ */
+const booksReady = fetch("books.json", { cache: "no-store" })
+  .then(response => {
+    if (!response.ok) throw new Error(`Could not load books.json (HTTP ${response.status})`);
+    return response.json();
+  })
+  .then(books => {
+    if (!Array.isArray(books)) throw new Error("books.json must contain an array");
+    BOOKS.splice(0, BOOKS.length, ...books);
+    booksLoaded = true;
+    return BOOKS;
+  });
 
-const ADMIN_KEY = "pp-admin-books";   // shelf-manager books (added + edits)
-const HIDDEN_KEY = "pp-hidden-books"; // built-in books hidden from the shelf manager
-
-/* How the shelf manager merges with the list above (all local to this browser):
-   - a stored entry whose id matches a built-in book OVERRIDES it (an edit)
-   - ids in the hidden list are taken off the shelf (a hide)
-   - everything else is an extra added book */
+/* The public website has exactly one source of book data: books.json.
+   Admin-page localStorage is intentionally ignored here. */
 function allBooks() {
-  let extra = [], hidden = [];
-  try { extra = JSON.parse(localStorage.getItem(ADMIN_KEY)) || []; }
-  catch (e) { extra = []; }
-  try { hidden = JSON.parse(localStorage.getItem(HIDDEN_KEY)) || []; }
-  catch (e) { hidden = []; }
-
-  const builtinIds = new Set(BOOKS.map(b => b.id));
-  const overrides = new Map(extra.filter(b => builtinIds.has(b.id)).map(b => [b.id, b]));
-  const shelf = BOOKS
-    .filter(b => !hidden.includes(b.id))
-    .map(b => overrides.get(b.id) || b);
-
-  return [...shelf, ...extra.filter(b => !builtinIds.has(b.id))];
+  return BOOKS;
 }
 
 /* Escape user text before inserting into HTML */
@@ -162,6 +86,10 @@ function solvesHTML(book) {
    ============================================================ */
 
 const grid = document.getElementById("bookGrid");
+const detail = document.getElementById("bookDetail");
+
+function initPublicBooks() {
+
 
 if (grid) {
   const chipsBox = document.getElementById("chips");
@@ -246,11 +174,6 @@ if (grid) {
   render();
 }
 
-/* ============================================================
-   Book page (book.html) — renders the book from ?id=...
-   ============================================================ */
-
-const detail = document.getElementById("bookDetail");
 
 if (detail) {
   const id = new URLSearchParams(location.search).get("id");
@@ -284,6 +207,32 @@ if (detail) {
     detail.querySelectorAll(".cover img").forEach(watchCover);
   }
 }
+
+
+}
+
+booksReady
+  .then(initPublicBooks)
+  .catch(error => {
+    console.error("Page & Pause: failed to load books.json", error);
+
+    if (grid) {
+      grid.innerHTML = "";
+      const emptyState = document.getElementById("emptyState");
+      if (emptyState) emptyState.hidden = false;
+      const resultCount = document.getElementById("resultCount");
+      if (resultCount) resultCount.textContent = "Books could not be loaded";
+    }
+
+    if (detail) {
+      detail.innerHTML = `
+        <div class="not-found">
+          <h1>Books are temporarily unavailable</h1>
+          <p>Please try again in a moment.</p>
+          <a class="btn btn-soft" href="index.html#books">Back to the books</a>
+        </div>`;
+    }
+  });
 
 /* ============================================================
    Fade-up on scroll (IntersectionObserver)
