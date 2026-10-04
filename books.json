@@ -1,0 +1,24 @@
+[
+  {
+    "id": "atomic-habits",
+    "title": "Atomic Habits",
+    "author": "James Clear",
+    "category": "Habits",
+    "problem": "I can't stop procrastinating",
+    "blurb": "Tiny changes compound into remarkable results. This one shows you how to build good habits and break bad ones without needing willpower.",
+    "cover": "https://i.postimg.cc/Tw8ZKsPn/Atomic.webp",
+    "lockerUrl": "https://filestrue.com/1917194",
+    "badge": "Most popular"
+  },
+  {
+    "id": "deep-work",
+    "title": "Deep Work",
+    "author": "Cal Newport",
+    "category": "Focus",
+    "problem": "I get distracted every three minutes",
+    "blurb": "Focused, uninterrupted work is becoming rare and therefore valuable. Learn rules for training your attention like a muscle.",
+    "cover": "https://i.postimg.cc/zDF9f0Yq/deepwork.webp",
+    "lockerUrl": "https://filestrue.com/1917196",
+    "badge": ""
+  }
+]
